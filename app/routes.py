@@ -11,19 +11,19 @@ RESULTS_DIR = os.path.join(os.path.dirname(__file__), 'results')
 
 @webserver.route('/api/get_results/<job_id>', methods=['GET'])
 def get_response(job_id):
-    logging.info(f"JobID is {job_id}")
-    
+    logging.info(f"Got request for job_id {job_id}")
+
     # Check if job_id is valid
-    if job_id >= webserver.job_counter:
+    if int(job_id) >= webserver.job_counter:
         return jsonify({'status': 'error', 'reason': 'Invalid job_id'})
-    
+
     # Check if job is done
-    if webserver.tasks_runner.check_job(job_id):
+    if webserver.tasks_runner.check_job(int(job_id)):
         with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'r') as f:
             res = json.load(f)
-        return jsonify({'status': 'done', 'data': res})
+        return jsonify({'status': 'done', 'data': res}), 200
     else:
-        return jsonify({'status': 'running'})
+        return jsonify({'status': 'running'}), 200
 
 @webserver.route('/api/states_mean', methods=['POST'])
 def states_mean_request():
@@ -32,12 +32,12 @@ def states_mean_request():
     logging.info(f"Got request {data}")
 
     # Register job. Don't wait for task to finish
-    webserver.tasks_runner.submit(threadpool_tasks.states_mean, data)
+    webserver.tasks_runner.submit(threadpool_tasks.states_mean, webserver.job_counter, data, webserver.data_ingestor, webserver.job_counter)
     # Increment job_id counter
     result = jsonify({"job_id": webserver.job_counter})
     webserver.job_counter += 1
     # Return associated job_id
-    return result
+    return result, 200
 
 @webserver.route('/api/state_mean', methods=['POST'])
 def state_mean_request():

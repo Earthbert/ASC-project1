@@ -1,3 +1,4 @@
+import logging
 import os
 import json
 import csv
@@ -23,8 +24,5 @@ class DataIngestor:
             'Percent of adults who engage in muscle-strengthening activities on 2 or more days a week',
         ]
     
-    def get_relevant_data(self, question: str, state: str = None):
-        if state:
-            return [row for row in self.data if row['Question'] == question and row['State'] == state]
-        else:
-            return [row for row in self.data if row['Question'] == question]
+    def get_data_for_question(self, question: str) -> list:
+        return [row for row in self.data if row['Question'] == question]

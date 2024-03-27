@@ -1,3 +1,4 @@
+import logging
 from threading import Thread, Lock
 from concurrent.futures import ThreadPoolExecutor
 import time
@@ -22,10 +23,10 @@ class ThreadPool:
         self.cleaner = ThreadPoolCleaner(self)
         self.cleaner.start()
 
-    def submit(self, fn, *args, **kwargs):
+    def submit(self, fn, job_id, *args, **kwargs):
         future = self.executor.submit(fn, *args, **kwargs)
         with self.dict_lock:
-            self.futures[future] = time.time()
+            self.futures[job_id] = future
 
     def get_jobs(self, max_jobs):
         result : dict = {}
@@ -38,9 +39,11 @@ class ThreadPool:
                     if i in self.futures:
                         self.futures.pop(i)
 
-    def check_job(self, job_id):
+    def check_job(self, job_id : int) -> bool:
         with self.dict_lock:
-            if self.futures[job_id].done():
+            if job_id not in self.futures or self.futures[job_id].done():
+                if job_id in self.futures:
+                    self.futures.pop(job_id)
                 return True
         return False
     
@@ -61,6 +64,6 @@ class ThreadPoolCleaner(Thread):
             
     def cleanup_futures(self):
         with self.thread_pool.dict_lock:
-            for future in list(self.thread_pool.futures.keys()):
+            for i, future in list(self.thread_pool.futures.items()):
                 if future.done():
-                    self.thread_pool.futures.pop(future)
+                    self.thread_pool.futures.pop(i)
