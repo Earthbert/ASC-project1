@@ -22,3 +22,9 @@ class DataIngestor:
             'Percent of adults who achieve at least 300 minutes a week of moderate-intensity aerobic physical activity or 150 minutes a week of vigorous-intensity aerobic activity (or an equivalent combination)',
             'Percent of adults who engage in muscle-strengthening activities on 2 or more days a week',
         ]
+    
+    def get_relevant_data(self, question: str, state: str = None):
+        if state:
+            return [row for row in self.data if row['Question'] == question and row['State'] == state]
+        else:
+            return [row for row in self.data if row['Question'] == question]

@@ -1,56 +1,43 @@
 from app import webserver
 from flask import request, jsonify
+
+import app.threadpool_tasks as threadpool_tasks
 import logging
 
 import os
 import json
 
-# Example endpoint definition
-@webserver.route('/api/post_endpoint', methods=['POST'])
-def post_endpoint():
-    if request.method == 'POST':
-        # Assuming the request contains JSON data
-        data = request.json
-        logging.info(f"got data in post {data}")
-
-        # Process the received data
-        # For demonstration purposes, just echoing back the received data
-        response = {"message": "Received data successfully", "data": data}
-
-        # Sending back a JSON response
-        return jsonify(response)
-    else:
-        # Method Not Allowed
-        return jsonify({"error": "Method not allowed"}), 405
+RESULTS_DIR = os.path.join(os.path.dirname(__file__), 'results')
 
 @webserver.route('/api/get_results/<job_id>', methods=['GET'])
 def get_response(job_id):
-    print(f"JobID is {job_id}")
-    # TODO
+    logging.info(f"JobID is {job_id}")
+    
     # Check if job_id is valid
-
-    # Check if job_id is done and return the result
-    #    res = res_for(job_id)
-    #    return jsonify({
-    #        'status': 'done',
-    #        'data': res
-    #    })
-
-    # If not, return running status
-    return jsonify({'status': 'NotImplemented'})
+    if job_id >= webserver.job_counter:
+        return jsonify({'status': 'error', 'reason': 'Invalid job_id'})
+    
+    # Check if job is done
+    if webserver.tasks_runner.check_job(job_id):
+        with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'r') as f:
+            res = json.load(f)
+        return jsonify({'status': 'done', 'data': res})
+    else:
+        return jsonify({'status': 'running'})
 
 @webserver.route('/api/states_mean', methods=['POST'])
 def states_mean_request():
     # Get request data
     data = request.json
-    print(f"Got request {data}")
+    logging.info(f"Got request {data}")
 
-    # TODO
     # Register job. Don't wait for task to finish
+    webserver.tasks_runner.submit(threadpool_tasks.states_mean, data)
     # Increment job_id counter
+    result = jsonify({"job_id": webserver.job_counter})
+    webserver.job_counter += 1
     # Return associated job_id
-
-    return jsonify({"status": "NotImplemented"})
+    return result
 
 @webserver.route('/api/state_mean', methods=['POST'])
 def state_mean_request():

@@ -21,14 +21,23 @@ class ThreadPool:
         
         self.cleaner = ThreadPoolCleaner(self)
         self.cleaner.start()
-        
+
     def submit(self, fn, *args, **kwargs):
         future = self.executor.submit(fn, *args, **kwargs)
         with self.dict_lock:
             self.futures[future] = time.time()
-            
-        return future
-    
+
+    def get_jobs(self, max_jobs):
+        result : dict = {}
+        with self.dict_lock:
+            for i in range(1, max_jobs):
+                if i in self.futures and not self.futures[i].done():
+                    result[f"job_id_{i}"] = "running"
+                else:
+                    result[f"job_id_{i}"] = "done"
+                    if i in self.futures:
+                        self.futures.pop(i)
+
     def check_job(self, job_id):
         with self.dict_lock:
             if self.futures[job_id].done():
