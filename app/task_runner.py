@@ -37,12 +37,16 @@ class ThreadPool:
                 else:
                     result[f"job_id_{i}"] = "done"
                     if i in self.futures:
+                        if self.futures[i].exception():
+                            logging.info(self.futures[i].exception())
                         self.futures.pop(i)
 
     def check_job(self, job_id : int) -> bool:
         with self.dict_lock:
             if job_id not in self.futures or self.futures[job_id].done():
                 if job_id in self.futures:
+                    if self.futures[job_id].exception():
+                            logging.info(self.futures[job_id].exception())
                     self.futures.pop(job_id)
                 return True
         return False
@@ -66,4 +70,6 @@ class ThreadPoolCleaner(Thread):
         with self.thread_pool.dict_lock:
             for i, future in list(self.thread_pool.futures.items()):
                 if future.done():
+                    if self.futures[i].exception():
+                            logging.info(self.futures[i].exception())
                     self.thread_pool.futures.pop(i)

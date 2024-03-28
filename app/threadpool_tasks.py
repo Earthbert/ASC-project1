@@ -14,7 +14,8 @@ def _separate_data_per_state(data : list) -> dict:
 	return state_data
 
 def _get_mean(data : list) -> float:
-	return sum([float(row.get('Data_Value') if row.get('Data_Value') != '' else 0.0) for row in data]) / len(data)
+	valid_data = [float(row.get('Data_Value')) for row in data if row.get('Data_Value') != '']
+	return sum(valid_data) / len(valid_data) if valid_data else float('nan')
 
 def states_mean(data, data_ingestor, job_id : int):
 	# Process data
@@ -23,9 +24,9 @@ def states_mean(data, data_ingestor, job_id : int):
 		relevant_data = data_ingestor.get_data_for_question(question)
 		separated_data = _separate_data_per_state(relevant_data)
 		state_means = {state: _get_mean(data) for state, data in separated_data.items()}
-		with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'x') as f:
+		with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'w') as f:
 			f.write(json.dumps(state_means))
 	else:
-		with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'x') as f:
+		with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'w') as f:
 			f.write(json.dumps({"error": "Invalid question"}))
 
