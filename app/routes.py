@@ -8,13 +8,14 @@ import os
 import json
 
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), 'results')
+GREAT_SUCCESS = 200
 
 @webserver.route('/api/get_results/<job_id>', methods=['GET'])
 def get_response(job_id : str):
     logging.info(f"Got request for job_id {job_id}")
 
     if webserver.running == False:
-        return jsonify({'status': 'shutting down'}), 200
+        return jsonify({'status': 'shutting down'}), GREAT_SUCCESS
 
     # Check if job_id is valid
     if int(job_id) >= webserver.job_counter:
@@ -24,9 +25,9 @@ def get_response(job_id : str):
     if webserver.tasks_runner.check_job(int(job_id)):
         with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'r') as f:
             res = json.load(f)
-        return jsonify({'status': 'done', 'data': res}), 200
+        return jsonify({'status': 'done', 'data': res}), GREAT_SUCCESS
     else:
-        return jsonify({'status': 'running'}), 200
+        return jsonify({'status': 'running'}), GREAT_SUCCESS
 
 def _handle_request(task : callable, *args):
      # Get request data
@@ -42,45 +43,55 @@ def _handle_request(task : callable, *args):
 
 @webserver.route('/api/states_mean', methods=['POST'])
 def states_mean_request():
-    return _handle_request(threadpool_tasks.states_mean), 200
+    return _handle_request(threadpool_tasks.states_mean), GREAT_SUCCESS
 
 @webserver.route('/api/state_mean', methods=['POST'])
 def state_mean_request():
-    return _handle_request(threadpool_tasks.state_mean), 200
+    return _handle_request(threadpool_tasks.state_mean), GREAT_SUCCESS
 
 @webserver.route('/api/best5', methods=['POST'])
 def best5_request():
-    return _handle_request(threadpool_tasks.top, True), 200
+    return _handle_request(threadpool_tasks.top, True), GREAT_SUCCESS
 
 @webserver.route('/api/worst5', methods=['POST'])
 def worst5_request():
-    return _handle_request(threadpool_tasks.top, False), 200
+    return _handle_request(threadpool_tasks.top, False), GREAT_SUCCESS
 
 @webserver.route('/api/global_mean', methods=['POST'])
 def global_mean_request():
-    return _handle_request(threadpool_tasks.global_mean), 200
+    return _handle_request(threadpool_tasks.global_mean), GREAT_SUCCESS
 
 @webserver.route('/api/diff_from_mean', methods=['POST'])
 def diff_from_mean_request():
-    return _handle_request(threadpool_tasks.diff_from_mean), 200
+    return _handle_request(threadpool_tasks.diff_from_mean), GREAT_SUCCESS
 
 @webserver.route('/api/state_diff_from_mean', methods=['POST'])
 def state_diff_from_mean_request():
-    return _handle_request(threadpool_tasks.state_diff_from_mean), 200
+    return _handle_request(threadpool_tasks.state_diff_from_mean), GREAT_SUCCESS
 
 @webserver.route('/api/mean_by_category', methods=['POST'])
 def mean_by_category_request():
-    return _handle_request(threadpool_tasks.mean_by_category), 200
+    return _handle_request(threadpool_tasks.mean_by_category), GREAT_SUCCESS
 
 @webserver.route('/api/state_mean_by_category', methods=['POST'])
 def state_mean_by_category_request():
-    return _handle_request(threadpool_tasks.state_mean_by_category), 200
+    return _handle_request(threadpool_tasks.state_mean_by_category), GREAT_SUCCESS
 
 @webserver.route('/api/gracefull_shutdown', methods=['GET'])
 def gracefull_shutdown():
     webserver.running = False
     webserver.tasks_runner.shutdown()
-    return jsonify({'status': 'shutting down'}), 200
+    return jsonify({'status': 'shutting down'}), GREAT_SUCCESS
+
+@webserver.route('/api/num_jobs', methods=['GET'])
+def num_jobs():
+    result = len(webserver.tasks_runner.get_jobs(webserver.job_counter))
+    return jsonify({'num_jobs': result}), GREAT_SUCCESS
+
+@webserver.route('/api/jobs', methods=['GET'])
+def jobs():
+    result = webserver.tasks_runner.get_jobs(webserver.job_counter)
+    return jsonify(result), GREAT_SUCCESS
 
 # You can check localhost in your browser to see what this displays
 @webserver.route('/')

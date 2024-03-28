@@ -22,9 +22,9 @@ def _separate_data_per_column(data : list, column) -> dict:
         state_data[location_desc].append(row)
     return state_data
 
-def _get_mean(data : list) -> float:
-    valid_data = [float(row.get(DATA_COL)) for row in data if row.get(DATA_COL) != '']
-    return sum(valid_data) / len(valid_data) if valid_data else float('nan')
+def _get_mean(data : list, column : str = DATA_COL) -> float:
+    valid_data = [float(row.get(column)) for row in data if row.get(column) != '']
+    return sum(valid_data) / len(valid_data) if valid_data else float('NaN')
 
 def _check_valid_question(data : dict, data_ingestor : DataIngestor) -> bool:
     return 'question' in data and (data['question'] in data_ingestor.questions_best_is_min or data['question'] in data_ingestor.questions_best_is_max)
@@ -34,8 +34,19 @@ def _write_result(job_id : int, result : dict):
     with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'w') as f:
         f.write(json.dumps(result))
 
-def states_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
-    # Process data
+def states_mean(job_id: int, data: dict, data_ingestor: DataIngestor):
+    """
+    Calculate the mean value for each state in the given data.
+    Writes result to a file with the job_id as the filename.
+
+    Args:
+        job_id (int): The ID of the job.
+        data (dict): The data containing the question and relevant information.
+        data_ingestor (DataIngestor): An instance of the DataIngestor class.
+
+    Returns:
+        None
+    """
     if _check_valid_question(data, data_ingestor):
         question = data['question']
         relevant_data = data_ingestor.get_data_for_question(question)
@@ -45,8 +56,19 @@ def states_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
     else:
         _write_result(job_id, INVALID_QUESTION)
             
-def state_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
-    # Process data
+def state_mean(job_id: int, data: dict, data_ingestor: DataIngestor):
+    """
+    Calculate the mean of a specific state's data for a given question.
+    Writes result to a file with the job_id as the filename.
+
+    Parameters:
+    - job_id (int): The ID of the job.
+    - data (dict): The data dictionary containing the question and state.
+    - data_ingestor (DataIngestor): An instance of the DataIngestor class.
+
+    Returns:
+    None
+    """
     if _check_valid_question(data, data_ingestor) and 'state' in data:
         question = data['question']
         state = data['state']
@@ -60,8 +82,21 @@ def state_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
     else:
         _write_result(job_id, INVALID_QUESTION)
 
-def top(job_id : int, data : dict, data_ingestor : DataIngestor, best : bool, n : int = 5):
-    # Process data
+def top(job_id: int, data: dict, data_ingestor: DataIngestor, best: bool, n: int = 5):
+    """
+    Retrieves the top 'n' states based on the mean value of the data for a given question.
+    Writes result to a file with the job_id as the filename.
+
+    Args:
+        job_id (int): The ID of the job.
+        data (dict): The data dictionary containing the question and relevant data.
+        data_ingestor (DataIngestor): An instance of the DataIngestor class.
+        best (bool): Flag indicating whether the top states should be based on the highest or lowest mean value.
+        n (int, optional): The number of top states to retrieve. Defaults to 5.
+
+    Returns:
+        None
+    """
     if _check_valid_question(data, data_ingestor):
         question = data['question']
         relevant_data = data_ingestor.get_data_for_question(question)
@@ -75,8 +110,19 @@ def top(job_id : int, data : dict, data_ingestor : DataIngestor, best : bool, n 
     else:
         _write_result(job_id, INVALID_QUESTION)
 
-def global_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
-    # Process data
+def global_mean(job_id: int, data: dict, data_ingestor: DataIngestor):
+    """
+    Calculate the global mean for a given question and write the result.
+    Writes result to a file with the job_id as the filename.
+
+    Parameters:
+    job_id (int): The ID of the job.
+    data (dict): The data containing the question.
+    data_ingestor (DataIngestor): The data ingestor object.
+
+    Returns:
+    None
+    """
     if _check_valid_question(data, data_ingestor):
         question = data['question']
         relevant_data = data_ingestor.get_data_for_question(question)
@@ -85,20 +131,42 @@ def global_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
     else:
         _write_result(job_id, INVALID_QUESTION)
             
-def diff_from_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
-    # Process data
+def diff_from_mean(job_id: int, data: dict, data_ingestor: DataIngestor):
+    """
+    Calculate the difference from the mean for each state in the given data.
+    Writes result to a file with the job_id as the filename.
+
+    Parameters:
+    - job_id (int): The ID of the job.
+    - data (dict): The data containing the question and relevant information.
+    - data_ingestor (DataIngestor): An instance of the DataIngestor class.
+
+    Returns:
+    None
+    """
     if _check_valid_question(data, data_ingestor):
         question = data['question']
         relevant_data = data_ingestor.get_data_for_question(question)
         data_per_state = _separate_data_per_column(relevant_data, STATE_COL)
         global_mean = _get_mean(relevant_data)
-        diff = {state : (global_mean - _get_mean(data)) for state, data in data_per_state.items()}
+        diff = {state: (global_mean - _get_mean(data)) for state, data in data_per_state.items()}
         _write_result(job_id, diff)
     else:
         _write_result(job_id, INVALID_QUESTION)
 
-def state_diff_from_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
-    # Process data
+def state_diff_from_mean(job_id: int, data: dict, data_ingestor: DataIngestor):
+    """
+    Calculates the difference between the mean of a specific state's data and the global mean.
+    Writes result to a file with the job_id as the filename.
+
+    Parameters:
+    - job_id (int): The ID of the job.
+    - data (dict): The data dictionary containing the question and state.
+    - data_ingestor (DataIngestor): An instance of the DataIngestor class.
+
+    Returns:
+    None
+    """
     if _check_valid_question(data, data_ingestor) and 'state' in data:
         question = data['question']
         state = data['state']
@@ -109,12 +177,23 @@ def state_diff_from_mean(job_id : int, data : dict, data_ingestor : DataIngestor
             _write_result(job_id, INVALID_STATE)
             return
         diff = global_mean - _get_mean(data_per_state[state])
-        _write_result(job_id, {state : diff})
+        _write_result(job_id, {state: diff})
     else:
         _write_result(job_id, INVALID_QUESTION)
         
 def mean_by_category(job_id : int, data : dict, data_ingestor : DataIngestor):
-    # Process data
+    """
+    Calculate the mean value for each category in the given data, grouped by state and stratification value.
+    Writes result to a file with the job_id as the filename.
+
+    Parameters:
+    - job_id (int): The ID of the job.
+    - data (dict): The data dictionary containing the question and relevant data.
+    - data_ingestor (DataIngestor): An instance of the DataIngestor class.
+
+    Returns:
+    None
+    """
     if _check_valid_question(data, data_ingestor):
         question = data['question']
         relevant_data = data_ingestor.get_data_for_question(question)
@@ -125,13 +204,24 @@ def mean_by_category(job_id : int, data : dict, data_ingestor : DataIngestor):
 
         result = {f'(\'{state_name}\', \'{data[0][CATEGORY_COL]}\', \'{stratication_value}\')' : _get_mean(data) \
             for state_name, state_data in date_per_state_per_category.items() \
-            for stratication_value, data in state_data.items()}
+            for stratication_value, data in state_data.items() if stratication_value != ''}
         _write_result(job_id, result)
     else:
         _write_result(job_id, INVALID_QUESTION)
 
-def state_mean_by_category(job_id : int, data : dict, data_ingestor : DataIngestor):
-    # Process data
+def state_mean_by_category(job_id: int, data: dict, data_ingestor: DataIngestor):
+    """
+    Calculate the mean value for each category in a specific state.
+    Writes result to a file with the job_id as the filename.
+
+    Args:
+        job_id (int): The ID of the job.
+        data (dict): The data containing the question and state.
+        data_ingestor (DataIngestor): An instance of the DataIngestor class.
+
+    Returns:
+        None
+    """
     if _check_valid_question(data, data_ingestor) and 'state' in data:
         question = data['question']
         relevant_data = data_ingestor.get_data_for_question(question)
@@ -143,7 +233,10 @@ def state_mean_by_category(job_id : int, data : dict, data_ingestor : DataIngest
         date_per_category = _separate_data_per_column(data_per_state[state], STRAT_COL)
 
         result = {f'(\'{data[0][CATEGORY_COL]}\', \'{stratication_value}\')' : _get_mean(data) \
-            for stratication_value, data in date_per_category.items()}
-        _write_result(job_id, {state: str(result)})
+            for stratication_value, data in date_per_category.items() if stratication_value != ''}
+        
+        sorted_result = {k: result[k] for k in sorted(result)}
+        
+        _write_result(job_id, {state: str(sorted_result)})
     else:
         _write_result(job_id, INVALID_QUESTION)

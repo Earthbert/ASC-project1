@@ -4,8 +4,24 @@ import json
 import csv
 
 class DataIngestor:
+    """
+    A class that represents a data ingestor for CSV files.
+
+    Attributes:
+        data (list): A list of dictionaries representing the data from the CSV file.
+        questions_best_is_min (list): A list of questions where the best value is the minimum.
+        questions_best_is_max (list): A list of questions where the best value is the maximum.
+    """
+
     def __init__(self, csv_path: str):
-        # TODO: Read csv from csv_path
+        """
+        Initializes a DataIngestor object.
+
+        Args:
+            csv_path (str): The path to the CSV file.
+
+        """
+        # Read csv from csv_path
         with open(csv_path, 'r') as file:
             self.data = list(csv.DictReader(file))
 
@@ -25,4 +41,13 @@ class DataIngestor:
         ]
 
     def get_data_for_question(self, question: str) -> list:
-        return [row for row in self.data if row['Question'] == question]
+            """
+            Retrieves data rows that match the given question.
+
+            Args:
+                question (str): The question to match.
+
+            Returns:
+                list: A list of data rows that match the given question.
+            """
+            return [row for row in self.data if row['Question'] == question]
