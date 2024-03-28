@@ -25,66 +25,38 @@ def get_response(job_id : str):
     else:
         return jsonify({'status': 'running'}), 200
 
-@webserver.route('/api/states_mean', methods=['POST'])
-def states_mean_request():
-    # Get request data
+def _handle_request(task : callable, *args):
+     # Get request data
     data = request.json
-    logging.info(f"Got request {data} of type {type(data)}")
-
+    logging.info(f"Got request {data}")
     # Register job. Don't wait for task to finish
-    webserver.tasks_runner.submit(threadpool_tasks.states_mean, webserver.job_counter, data, webserver.data_ingestor)
+    webserver.tasks_runner.submit(task, webserver.job_counter, data, webserver.data_ingestor, *args)
     # Increment job_id counter
     result = jsonify({"job_id": webserver.job_counter})
     webserver.job_counter += 1
     # Return associated job_id
-    return result, 200
+    return result
+
+@webserver.route('/api/states_mean', methods=['POST'])
+def states_mean_request():
+    return _handle_request(threadpool_tasks.states_mean), 200
 
 @webserver.route('/api/state_mean', methods=['POST'])
 def state_mean_request():
-    # Get request data
-    data = request.json
-    # Register job. Don't wait for task to finish
-    webserver.tasks_runner.submit(threadpool_tasks.state_mean, webserver.job_counter, data, webserver.data_ingestor)
-    # Increment job_id counter
-    result = jsonify({"job_id": webserver.job_counter})
-    webserver.job_counter += 1
-    # Return associated job_id
-    return result, 200
+    return _handle_request(threadpool_tasks.state_mean), 200
 
 
 @webserver.route('/api/best5', methods=['POST'])
 def best5_request():
-    # Get request data
-    data = request.json
-    # Register job. Don't wait for task to finish
-    webserver.tasks_runner.submit(threadpool_tasks.top, webserver.job_counter, data, webserver.data_ingestor, True)
-    # Increment job_id counter
-    result = jsonify({"job_id": webserver.job_counter})
-    webserver.job_counter += 1
-    # Return associated job_id
-    return result, 200
+    return _handle_request(threadpool_tasks.top, True), 200
 
 @webserver.route('/api/worst5', methods=['POST'])
 def worst5_request():
-    # Get request data
-    data = request.json
-    # Register job. Don't wait for task to finish
-    webserver.tasks_runner.submit(threadpool_tasks.top, webserver.job_counter, data, webserver.data_ingestor, False)
-    # Increment job_id counter
-    result = jsonify({"job_id": webserver.job_counter})
-    webserver.job_counter += 1
-    # Return associated job_id
-    return result, 200
+    return _handle_request(threadpool_tasks.top, False), 200
 
 @webserver.route('/api/global_mean', methods=['POST'])
 def global_mean_request():
-    # TODO
-    # Get request data
-    # Register job. Don't wait for task to finish
-    # Increment job_id counter
-    # Return associated job_id
-
-    return jsonify({"status": "NotImplemented"})
+    return _handle_request(threadpool_tasks.global_mean), 200
 
 @webserver.route('/api/diff_from_mean', methods=['POST'])
 def diff_from_mean_request():

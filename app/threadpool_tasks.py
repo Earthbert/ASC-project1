@@ -70,4 +70,15 @@ def top(job_id : int, data : dict, data_ingestor : DataIngestor, best : bool, n 
         with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'w') as f:
             f.write(json.dumps({"error": "Invalid question"}))
 
+def global_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
+    # Process data
+    if _check_valid_question(data, data_ingestor):
+        question = data['question']
+        relevant_data = data_ingestor.get_data_for_question(question)
+        mean = _get_mean(relevant_data)
+        with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'w') as f:
+            f.write(json.dumps({"global_mean": mean}))
+    else:
+        with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'w') as f:
+            f.write(json.dumps({"error": "Invalid question"}))
 
