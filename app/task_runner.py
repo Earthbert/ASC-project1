@@ -1,10 +1,14 @@
 import logging
 from threading import Thread, Lock
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 import time
 import os
 
 CLEANUP_INTERVAL = 2
+
+def _log_exception(future : Future, job_id : int):
+    if future.exception():
+        logging.info("Job %d failed with exception: %s", job_id, future.exception())
 
 class ThreadPool:
     def __init__(self):
@@ -23,30 +27,28 @@ class ThreadPool:
         self.cleaner = ThreadPoolCleaner(self)
         self.cleaner.start()
 
-    def submit(self, fn, job_id, *args, **kwargs):
-        future = self.executor.submit(fn, *args, **kwargs)
+    def submit(self, fn: callable, job_id: int, *args, **kwargs):
+        future = self.executor.submit(fn, job_id, *args, **kwargs)
         with self.dict_lock:
             self.futures[job_id] = future
 
-    def get_jobs(self, max_jobs):
+    def get_jobs(self, max_jobs : int):
         result : dict = {}
         with self.dict_lock:
-            for i in range(1, max_jobs):
-                if i in self.futures and not self.futures[i].done():
-                    result[f"job_id_{i}"] = "running"
+            for job_id in range(1, max_jobs):
+                if job_id in self.futures and not self.futures[job_id].done():
+                    result[f"job_id_{job_id}"] = "running"
                 else:
-                    result[f"job_id_{i}"] = "done"
-                    if i in self.futures:
-                        if self.futures[i].exception():
-                            logging.info(self.futures[i].exception())
-                        self.futures.pop(i)
+                    result[f"job_id_{job_id}"] = "done"
+                    if job_id in self.futures:
+                        _log_exception(self.futures[job_id], job_id)
+                        self.futures.pop(job_id)
 
     def check_job(self, job_id : int) -> bool:
         with self.dict_lock:
             if job_id not in self.futures or self.futures[job_id].done():
                 if job_id in self.futures:
-                    if self.futures[job_id].exception():
-                            logging.info(self.futures[job_id].exception())
+                    _log_exception(self.futures[job_id], job_id)
                     self.futures.pop(job_id)
                 return True
         return False
@@ -68,8 +70,7 @@ class ThreadPoolCleaner(Thread):
             
     def cleanup_futures(self):
         with self.thread_pool.dict_lock:
-            for i, future in list(self.thread_pool.futures.items()):
+            for job_id, future in list(self.thread_pool.futures.items()):
                 if future.done():
-                    if self.futures[i].exception():
-                            logging.info(self.futures[i].exception())
-                    self.thread_pool.futures.pop(i)
+                    _log_exception(future, job_id)
+                    self.thread_pool.futures.pop(job_id)

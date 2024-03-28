@@ -10,7 +10,7 @@ import json
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), 'results')
 
 @webserver.route('/api/get_results/<job_id>', methods=['GET'])
-def get_response(job_id):
+def get_response(job_id : str):
     logging.info(f"Got request for job_id {job_id}")
 
     # Check if job_id is valid
@@ -29,10 +29,10 @@ def get_response(job_id):
 def states_mean_request():
     # Get request data
     data = request.json
-    logging.info(f"Got request {data}")
+    logging.info(f"Got request {data} of type {type(data)}")
 
     # Register job. Don't wait for task to finish
-    webserver.tasks_runner.submit(threadpool_tasks.states_mean, webserver.job_counter, data, webserver.data_ingestor, webserver.job_counter)
+    webserver.tasks_runner.submit(threadpool_tasks.states_mean, webserver.job_counter, data, webserver.data_ingestor)
     # Increment job_id counter
     result = jsonify({"job_id": webserver.job_counter})
     webserver.job_counter += 1
@@ -41,9 +41,10 @@ def states_mean_request():
 
 @webserver.route('/api/state_mean', methods=['POST'])
 def state_mean_request():
-    # TODO
     # Get request data
+    data = request.json
     # Register job. Don't wait for task to finish
+    webserver.tasks_runner.submit(threadpool_tasks.states_mean, webserver.job_counter, data, webserver.data_ingestor)
     # Increment job_id counter
     # Return associated job_id
 
