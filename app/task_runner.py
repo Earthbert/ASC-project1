@@ -1,3 +1,7 @@
+"""
+A module that provides a ThreadPool class for executing jobs asynchronously.
+"""
+
 import logging
 from threading import Thread, Lock
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -9,6 +13,7 @@ CLEANUP_INTERVAL = 2
 def _log_exception(future : Future, job_id : int):
     if future.exception():
         logging.info("Job %d failed with exception: %s", job_id, future.exception())
+
 
 class ThreadPool:
     """
@@ -39,68 +44,69 @@ class ThreadPool:
         self.executor : ThreadPoolExecutor = ThreadPoolExecutor(max_workers=num_threads)
         self.futures : dict = {}
         self.dict_lock : Lock = Lock()
-        
+
         self.cleaner = ThreadPoolCleaner(self)
         self.cleaner.start()
 
-    def submit(self, fn: callable, job_id: int, *args, **kwargs):
-            """
-            Submits a job to be executed asynchronously.
+    def submit(self, task: callable, job_id: int, *args, **kwargs):
+        """
+        Submits a job to be executed asynchronously.
 
-            Args:
-                fn (callable): The function to be executed.
-                job_id (int): The ID of the job.
-                *args: Variable length argument list to be passed to the function.
-                **kwargs: Arbitrary keyword arguments to be passed to the function.
+        Args:
+            fn (callable): The function to be executed.
+            job_id (int): The ID of the job.
+            *args: Variable length argument list to be passed to the function.
+            **kwargs: Arbitrary keyword arguments to be passed to the function.
 
-            Returns:
-                None
-            """
-            future = self.executor.submit(fn, job_id, *args, **kwargs)
-            with self.dict_lock:
-                self.futures[job_id] = future
+        Returns:
+            None
+        """
+        future = self.executor.submit(task, job_id, *args, **kwargs)
+        with self.dict_lock:
+            self.futures[job_id] = future
 
     def get_jobs(self, max_jobs: int) -> dict:
-            """
-            Retrieve the status of the running and completed jobs.
+        """
+        Retrieve the status of the running and completed jobs.
 
-            Args:
-                max_jobs (int): The maximum number of jobs to retrieve.
+        Args:
+            max_jobs (int): The maximum number of jobs to retrieve.
 
-            Returns:
-                dict: A dictionary containing the status of the jobs. The keys are in the format "job_id_{job_id}"
-                      and the values are either "running" or "done".
-            """
-            result: dict = {}
-            with self.dict_lock:
-                for job_id in range(1, max_jobs):
-                    if job_id in self.futures and not self.futures[job_id].done():
-                        result[f"job_id_{job_id}"] = "running"
-                    else:
-                        result[f"job_id_{job_id}"] = "done"
-                        if job_id in self.futures:
-                            _log_exception(self.futures[job_id], job_id)
-                            self.futures.pop(job_id)
-            return result
-
-    def check_job(self, job_id : int) -> bool:
-            """
-            Checks the status of a job with the given job_id.
-
-            Args:
-                job_id (int): The ID of the job to check.
-
-            Returns:
-                bool: True if the job is completed or not found, False otherwise.
-            """
-            with self.dict_lock:
-                if job_id not in self.futures or self.futures[job_id].done():
+        Returns:
+            dict: A dictionary containing the status of the jobs.
+                    The keys are in the format "job_id_{job_id}"
+                    and the values are either "running" or "done".
+        """
+        result: dict = {}
+        with self.dict_lock:
+            for job_id in range(1, max_jobs):
+                if job_id in self.futures and not self.futures[job_id].done():
+                    result[f"job_id_{job_id}"] = "running"
+                else:
+                    result[f"job_id_{job_id}"] = "done"
                     if job_id in self.futures:
                         _log_exception(self.futures[job_id], job_id)
                         self.futures.pop(job_id)
-                    return True
-            return False
-    
+        return result
+
+    def check_job(self, job_id : int) -> bool:
+        """
+        Checks the status of a job with the given job_id.
+
+        Args:
+            job_id (int): The ID of the job to check.
+
+        Returns:
+            bool: True if the job is completed or not found, False otherwise.
+        """
+        with self.dict_lock:
+            if job_id not in self.futures or self.futures[job_id].done():
+                if job_id in self.futures:
+                    _log_exception(self.futures[job_id], job_id)
+                    self.futures.pop(job_id)
+                return True
+        return False
+
     def shutdown(self):
         """
         Shuts down the task runner by stopping the executor and joining the cleaner thread.
@@ -125,19 +131,22 @@ class ThreadPoolCleaner(Thread):
         """
         The main method that runs the thread.
 
-        This method continuously sleeps for a specified interval and then calls the `cleanup_futures` method
-        to remove completed futures from the thread pool.
+        This method continuously sleeps for a specified interval and then calls
+        the `cleanup_futures` method to remove completed futures from the thread pool.
         """
         while True:
             time.sleep(CLEANUP_INTERVAL)
             self.cleanup_futures()
-            
+
     def cleanup_futures(self):
         """
         Removes completed futures from the thread pool.
 
-        This method iterates over the futures in the thread pool and removes any futures that have completed.
-        If a completed future is found, it logs the exception associated with the future and removes it from the pool.
+        This method iterates over the futures in the thread pool and removes
+        any futures that have completed.
+
+        If a completed future is found, it logs the exception associated with
+        the future and removes it from the pool.
         """
         with self.thread_pool.dict_lock:
             for job_id, future in list(self.thread_pool.futures.items()):

@@ -1,6 +1,7 @@
-import logging
-import os
-import json
+"""
+A module that contains a class for ingesting data from a CSV file.
+"""
+
 import csv
 
 class DataIngestor:
@@ -41,13 +42,13 @@ class DataIngestor:
         ]
 
     def get_data_for_question(self, question: str) -> list:
-            """
-            Retrieves data rows that match the given question.
+        """
+        Retrieves data rows that match the given question.
 
-            Args:
-                question (str): The question to match.
+        Args:
+            question (str): The question to match.
 
-            Returns:
-                list: A list of data rows that match the given question.
-            """
-            return [row for row in self.data if row['Question'] == question]
+        Returns:
+            list: A list of data rows that match the given question.
+        """
+        return [row for row in self.data if row['Question'] == question]
