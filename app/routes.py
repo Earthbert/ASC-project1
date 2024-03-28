@@ -45,7 +45,6 @@ def states_mean_request():
 def state_mean_request():
     return _handle_request(threadpool_tasks.state_mean), 200
 
-
 @webserver.route('/api/best5', methods=['POST'])
 def best5_request():
     return _handle_request(threadpool_tasks.top, True), 200
@@ -60,23 +59,11 @@ def global_mean_request():
 
 @webserver.route('/api/diff_from_mean', methods=['POST'])
 def diff_from_mean_request():
-    # TODO
-    # Get request data
-    # Register job. Don't wait for task to finish
-    # Increment job_id counter
-    # Return associated job_id
-
-    return jsonify({"status": "NotImplemented"})
+    return _handle_request(threadpool_tasks.diff_from_mean), 200
 
 @webserver.route('/api/state_diff_from_mean', methods=['POST'])
 def state_diff_from_mean_request():
-    # TODO
-    # Get request data
-    # Register job. Don't wait for task to finish
-    # Increment job_id counter
-    # Return associated job_id
-
-    return jsonify({"status": "NotImplemented"})
+    return _handle_request(threadpool_tasks.state_diff_from_mean), 200
 
 @webserver.route('/api/mean_by_category', methods=['POST'])
 def mean_by_category_request():

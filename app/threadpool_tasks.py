@@ -5,6 +5,8 @@ import logging
 from app.data_ingestor import DataIngestor
 
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), 'results')
+INVALID_QUESTION = {"error": "Invalid question"}
+INVALID_STATE = {"error": "Invalid state"}
 
 def _separate_data_per_state(data : list) -> dict:
     state_data = {}
@@ -22,6 +24,11 @@ def _get_mean(data : list) -> float:
 def _check_valid_question(data : dict, data_ingestor : DataIngestor) -> bool:
     return 'question' in data and (data['question'] in data_ingestor.questions_best_is_min or data['question'] in data_ingestor.questions_best_is_max)
 
+def _write_result(job_id : int, result : dict):
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+    with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'w') as f:
+        f.write(json.dumps(result))
+
 def states_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
     # Process data
     if _check_valid_question(data, data_ingestor):
@@ -29,11 +36,9 @@ def states_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
         relevant_data = data_ingestor.get_data_for_question(question)
         separated_data = _separate_data_per_state(relevant_data)
         state_means = {state: _get_mean(data) for state, data in separated_data.items()}
-        with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'w') as f:
-            f.write(json.dumps(state_means))
+        _write_result(job_id, state_means)
     else:
-        with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'w') as f:
-            f.write(json.dumps({"error": "Invalid question"}))
+        _write_result(job_id, INVALID_QUESTION)
             
 def state_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
     # Process data
@@ -44,14 +49,11 @@ def state_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
         separated_data = _separate_data_per_state(relevant_data)
         if state in separated_data:
             result = {state: _get_mean(separated_data[state])}
-            with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'w') as f:
-                f.write(json.dumps(result))
+            _write_result(job_id, result)
         else:
-            with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'w') as f:
-                f.write(json.dumps({"error": "Invalid state"}))
+            _write_result(job_id, INVALID_STATE)
     else:
-        with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'w') as f:
-            f.write(json.dumps({"error": "Invalid question"}))
+        _write_result(job_id, INVALID_QUESTION)
 
 def top(job_id : int, data : dict, data_ingestor : DataIngestor, best : bool, n : int = 5):
     # Process data
@@ -64,11 +66,9 @@ def top(job_id : int, data : dict, data_ingestor : DataIngestor, best : bool, n 
         order = question in data_ingestor.questions_best_is_max if best else question in data_ingestor.questions_best_is_min
         sorted_states = sorted(state_means, key=state_means.get, reverse=order)
         result = {state: state_means[state] for state in sorted_states[:n]}
-        with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'w') as f:
-            f.write(json.dumps(result))
+        _write_result(job_id, result)
     else:
-        with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'w') as f:
-            f.write(json.dumps({"error": "Invalid question"}))
+        _write_result(job_id, INVALID_QUESTION)
 
 def global_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
     # Process data
@@ -76,9 +76,34 @@ def global_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
         question = data['question']
         relevant_data = data_ingestor.get_data_for_question(question)
         mean = _get_mean(relevant_data)
-        with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'w') as f:
-            f.write(json.dumps({"global_mean": mean}))
+        _write_result(job_id, {"global_mean": mean})
     else:
-        with open(os.path.join(RESULTS_DIR, f"{job_id}"), 'w') as f:
-            f.write(json.dumps({"error": "Invalid question"}))
+        _write_result(job_id, INVALID_QUESTION)
+            
+def diff_from_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
+    # Process data
+    if _check_valid_question(data, data_ingestor):
+        question = data['question']
+        relevant_data = data_ingestor.get_data_for_question(question)
+        separated_data = _separate_data_per_state(relevant_data)
+        global_mean = _get_mean(relevant_data)
+        diff = {state : (global_mean - _get_mean(data)) for state, data in separated_data.items()}
+        _write_result(job_id, diff)
+    else:
+        _write_result(job_id, INVALID_QUESTION)
 
+def state_diff_from_mean(job_id : int, data : dict, data_ingestor : DataIngestor):
+    # Process data
+    if _check_valid_question(data, data_ingestor) and 'state' in data:
+        question = data['question']
+        state = data['state']
+        relevant_data = data_ingestor.get_data_for_question(question)
+        separated_data = _separate_data_per_state(relevant_data)
+        global_mean = _get_mean(relevant_data)
+        if state in separated_data:
+            diff = global_mean - _get_mean(separated_data[state])
+            _write_result(job_id, {state : diff})
+        else:
+            _write_result(job_id, INVALID_STATE)
+    else:
+        _write_result(job_id, INVALID_QUESTION)
