@@ -12,4 +12,6 @@ webserver.data_ingestor = DataIngestor("./nutrition_activity_obesity_usa_subset.
 
 webserver.job_counter = 1
 
+webserver.running = True
+
 from app import routes

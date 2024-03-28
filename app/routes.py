@@ -13,6 +13,9 @@ RESULTS_DIR = os.path.join(os.path.dirname(__file__), 'results')
 def get_response(job_id : str):
     logging.info(f"Got request for job_id {job_id}")
 
+    if webserver.running == False:
+        return jsonify({'status': 'shutting down'}), 200
+
     # Check if job_id is valid
     if int(job_id) >= webserver.job_counter:
         return jsonify({'status': 'error', 'reason': 'Invalid job_id'})
@@ -67,23 +70,17 @@ def state_diff_from_mean_request():
 
 @webserver.route('/api/mean_by_category', methods=['POST'])
 def mean_by_category_request():
-    # TODO
-    # Get request data
-    # Register job. Don't wait for task to finish
-    # Increment job_id counter
-    # Return associated job_id
-
-    return jsonify({"status": "NotImplemented"})
+    return _handle_request(threadpool_tasks.mean_by_category), 200
 
 @webserver.route('/api/state_mean_by_category', methods=['POST'])
 def state_mean_by_category_request():
-    # TODO
-    # Get request data
-    # Register job. Don't wait for task to finish
-    # Increment job_id counter
-    # Return associated job_id
+    return _handle_request(threadpool_tasks.state_mean_by_category), 200
 
-    return jsonify({"status": "NotImplemented"})
+@webserver.route('/api/gracefull_shutdown', methods=['GET'])
+def gracefull_shutdown():
+    webserver.running = False
+    webserver.tasks_runner.shutdown()
+    return jsonify({'status': 'shutting down'}), 200
 
 # You can check localhost in your browser to see what this displays
 @webserver.route('/')
