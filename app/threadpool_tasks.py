@@ -58,6 +58,7 @@ def states_mean(job_id: int, data: dict, data_ingestor: DataIngestor):
         relevant_data = data_ingestor.get_data_for_question(question)
         data_per_state = _separate_data_per_column(relevant_data, STATE_COL)
         state_means = {state: _get_mean(data) for state, data in data_per_state.items()}
+        state_means = {k: v for k, v in sorted(state_means.items(), key=lambda item: item[1])}
         _write_result(job_id, state_means)
     else:
         _write_result(job_id, INVALID_QUESTION)
