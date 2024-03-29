@@ -255,6 +255,6 @@ def state_mean_by_category(job_id: int, data: dict, data_ingestor: DataIngestor)
 
         sorted_result = {k: result[k] for k in sorted(result)}
 
-        _write_result(job_id, {state: str(sorted_result)})
+        _write_result(job_id, {state: sorted_result})
     else:
         _write_result(job_id, INVALID_QUESTION)
