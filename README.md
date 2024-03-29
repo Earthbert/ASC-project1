@@ -1,4 +1,3 @@
-Corecții Readme
 
 # Tema 1
 
