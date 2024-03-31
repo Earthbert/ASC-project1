@@ -47,6 +47,8 @@ class ThreadPool:
 
         self.cleaner = ThreadPoolCleaner(self)
         self.cleaner.start()
+        
+        self.running = True
 
     def submit(self, task: callable, job_id: int, *args, **kwargs):
         """
@@ -112,7 +114,7 @@ class ThreadPool:
         Shuts down the task runner by stopping the executor and joining the cleaner thread.
         """
         self.executor.shutdown()
-        self.cleaner.join()
+        self.running = False
 
 
 class ThreadPoolCleaner(Thread):
@@ -137,6 +139,9 @@ class ThreadPoolCleaner(Thread):
         while True:
             time.sleep(CLEANUP_INTERVAL)
             self.cleanup_futures()
+            if not self.thread_pool.running and len(self.thread_pool.futures) == 0:
+                logging.info("All jobs completed. Exiting.")
+                os._exit(0)
 
     def cleanup_futures(self):
         """
