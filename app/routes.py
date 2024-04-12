@@ -25,9 +25,11 @@ def _handle_request(task: callable, *args):
     data = request.json
     request_path = request.path
     logging.info("Got request at %s with data:\n %s", request_path, data)
-    webserver.tasks_runner.submit(task, webserver.job_counter, data, webserver.data_ingestor, *args)
-    result = jsonify({"job_id": webserver.job_counter})
-    webserver.job_counter += 1
+    with webserver.job_counter_lock:
+        current_job_counter = webserver.job_counter
+        webserver.job_counter += 1
+    webserver.tasks_runner.submit(task, current_job_counter, data, webserver.data_ingestor, *args)
+    result = jsonify({"job_id": current_job_counter})
     return result
 
 

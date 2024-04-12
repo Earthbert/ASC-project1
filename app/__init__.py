@@ -1,3 +1,4 @@
+from threading import Lock
 import time
 from flask import Flask
 from app.data_ingestor import DataIngestor
@@ -27,6 +28,8 @@ webserver.data_ingestor = DataIngestor("./nutrition_activity_obesity_usa_subset.
 
 # Initialize the job counter and running flag
 webserver.job_counter = 1
+webserver.job_counter_lock = Lock()
+
 webserver.running = True
 
 from app import routes
